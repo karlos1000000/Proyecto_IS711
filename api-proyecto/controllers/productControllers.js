@@ -2,7 +2,7 @@ import db from '../config/db.js';
 import { ValidateProduct } from '../schemas/product.schema.js';
 
 
-export class productsController {
+export class productController {
 
     // Obtener todos los productos
     static getAllProducts = (req, res) => {

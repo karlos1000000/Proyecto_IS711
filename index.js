@@ -1,8 +1,11 @@
 import express, { json } from 'express'
 import { corsMiddleware } from './middlewares/cors.js'
+import productRouter from './routes/product'
+import cartRouter from './routes/cart'
 import authRouter from './routes/auth'
 import paymentsRouter from './routes/payments'
 import inventoryRouter from './routes/inventory'
+
 
 
 const app = express();
@@ -17,6 +20,8 @@ app.use(corsMiddleware())
 const PORT = process.env.PORT || 3000;
 
 // Rutas
+app.use('/products', productRouter);
+app.use('/cart', cartRouter);
 app.use('/auth', authRouter);
 app.use('/payments', paymentsRouter);
 app.use('/inventory',inventoryRouter);
