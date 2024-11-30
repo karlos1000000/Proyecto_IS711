@@ -7,14 +7,14 @@ export class authController{
 
 
     static registerUser = (req, res) => {
-        const consulta = `INSERT INTO usuarios (id, nombre, correo, contrasena, fecha_registro) 
+        const consulta = `INSERT INTO usuarios (id, username, password, role) 
                         VALUES (?, ?, ?, ?, ?)`;
         const data = req.body;
 
 
         try {
-            const { id, nombre, correo, contrasena, fecha_registro} = data;
-            db.query(consulta, [id, nombre, correo, contrasena, fecha_registro], (error, results) => {
+            const { id, username, password, role} = data;
+            db.query(consulta, [id, username, password, role], (error, results) => {
                 
                 if(error)
                 {
@@ -44,22 +44,22 @@ export class authController{
     static loginUser(req, res) {
 
 
-        const { correo, contrasena } = req.body
+        const { username, password } = req.body
 
         //TODO: realizar las evaluaciones pertinentes
-        if (!correo || !contrasena) {
+        if (!username || !password) {
             return res.status(400).json({
                 error: true,
-                message: "Correo y contraseña son requeridos!"
+                message: "Usuario y contraseña son requeridos!"
             })
         }
 
-        const query = `SELECT id, nombre, correo, contrasena, fecha_registro 
+        const query = `SELECT id, username, password, role 
                         FROM users WHERE username = ? `
 
         try {
 
-            connection.query(query, [correo], (error, results) => {
+            connection.query(query, [username], (error, results) => {
 
                 // problemas con el seridor o la escturcutra de la consulta
                 if (error) {
@@ -77,11 +77,11 @@ export class authController{
                     })
                 }
 
-                // results, es un array con los resultados de la consulta
+              
 
-                const { contrasena_hash } = results[0] // extraigo el password_hash del primer elemento del array
+                const { password_hash } = results[0] // extraigo el password_hash del primer elemento del array
 
-                bcrypt.compare(contrasena, contrasena_hash, function (error, result) {
+                bcrypt.compare(password, password_hash, function (error, result) {
 
                     // result: devuelve true si las contraseñas coinciden, de lo contrario false
                     if (!result) {
@@ -94,7 +94,7 @@ export class authController{
 
                     const data = results[0]
 
-                    delete data['contrasena_hash'] // -> {username, password_hash, full_name, role, must_change_password, status}
+                    delete data['password_hash'] // -> {username, password_hash, full_name, role, must_change_password, status}
 
                     const token = jwt.sign({ ...data }, process.env.SECRET_KEY, { expiresIn: '1h' })
                     data.token = token
