@@ -42,7 +42,7 @@ export class inventoryController{
 
     static getInventoryById = (req, res) => {
         const { id } = req.params;
-        const consulta = "SELECT id ,productId, changeAmount,changeType, createdAt FROM Inventory WHERE id = ?";
+        const consulta = "SELECT id , name, description, stock, price FROM Products WHERE id = ?";
 
         try {
             db.query(consulta, [id], (err, results) => {

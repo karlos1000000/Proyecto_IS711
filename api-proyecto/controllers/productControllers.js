@@ -6,7 +6,7 @@ export class productController {
 
     // Obtener todos los productos
     static getAllProducts = (req, res) => {
-        const consulta = "SELECT id, nombre, descripcion, precio, stock, categoria FROM productos";
+        const consulta = "SELECT id, name, description, price, stock FROM products";
 
         try {
             db.query(consulta, (err, results) => {
@@ -43,7 +43,7 @@ export class productController {
     // Obtener un producto específico por ID
     static getProductById = (req, res) => {
         const { productId } = req.params;
-        const consulta = "SELECT id as productId, nombre, descripcion, precio, stock, categoria, fecha_creacion FROM productos WHERE id = ?";
+        const consulta = "SELECT id as productId, name, description, price, stock FROM products WHERE id = ?";
 
         try {
             db.query(consulta, [productId], (err, results) => {
