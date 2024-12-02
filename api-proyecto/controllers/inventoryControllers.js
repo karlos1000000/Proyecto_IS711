@@ -7,37 +7,47 @@ export class inventoryController{
 
 
     static restockInventory = (req, res) => {
-        const consulta = `INSERT INTO Inventory (productId, changeAmount,changeType, createdAt) 
-                        VALUES (?, ?, ?, ?)`;
+        const consulta = `UPDATE Products SET Stock = Stock + ? WHERE id = ?`; 
+                        
         const data = req.body;
 
-
         try {
-            const { productId, changeAmount,changeType, createdAt} = data;
-            db.query(consulta, [productId, changeAmount,changeType, createdAt], (error, results) => {
+            
+            db.query(consulta, [data.stock, data.id], (err, results) => {
                 
-                if(error)
-                {
+                if (err) {
                     return res.status(400)
-                                .json({
-                                    message: "Error al ingresar inventario (error en el query)  " + error,
-                                    error: true
-                                });
+                              .json({
+                                  message: "Error al actualizar el inventario (error en el query)" + err,
+                                  error: true
+                    });
+                } 
+
+                if (results.affectedRows === 0) {
+                    return res.status(400)
+                              .json({
+                                  message: "No se actualizó el inventario",
+                                  error: true
+                              });
                 }
 
-                return res  .header("Content-Type", "application/json")
-                            .status(200)
-                            .json(data);
-
+                return res.header("Content-Type", "application/json")
+                          .status(200)
+                          .json({
+                              message: "Inventario actualizado exitosamente",
+                              inventoryId: data.id
+                          });
             });
+
         } catch (error) {
+            
             return res.status(400)
-                        .json({
-                            message: "Error al ingresar inventario (error en el catch)",
-                            error: true
-                        });
+                      .json({
+                          message: "Error al actualizar el inventario (error en el catch)",
+                          error: true
+            });
+    
         }
-        
     }
 
     static getInventoryById = (req, res) => {
@@ -75,11 +85,5 @@ export class inventoryController{
                       });
         }
     }
-
-
-
-
-
-
 
 }
