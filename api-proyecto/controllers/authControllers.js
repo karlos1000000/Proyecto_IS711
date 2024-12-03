@@ -4,30 +4,45 @@ import jwt from "jsonwebtoken";
 import 'dotenv/config';
 
 export class authController{
+    
+    static getAllUsers (req, res) {
+        const consulta  = "Select id, username, email, password, role from users" //Query para obtener todos los usuarios
+        db.query(consulta, (error, results) => {
+            if(error){
+                return res.status(400).json({
+                    message: "Hubo un error al obtener los datos en el servidor"
+                })
+            }
 
+            return res.header('Content-type', 'application/json').status(201).json(results)
+        })
+    }
 
     static registerUser = (req, res) => {
-        const consulta = `INSERT INTO usuarios (id, username, password, role) 
-                        VALUES (?, ?, ?, ?, ?)`;
+        const consulta = `INSERT INTO users ( username, email, password) 
+                        VALUES (?, ?, ?)`;
         const data = req.body;
+        const { username, email, password} = data;
+        if(!username|| !email || !password)//verificamos que ingreso todo lo que solicitamos
+        {
+            return res.status(400).json({
+                message: "Debe de ingresar: username, email y password"
+            })
+        }
 
+        const passwordhash = bcrypt.hashSync(password,10)
 
         try {
-            const { id, username, password, role} = data;
-            db.query(consulta, [id, username, password, role], (error, results) => {
+            
+            db.query(consulta, [username, email, passwordhash], (error, results) => {
                 
-                if(error)
-                {
-                    return res.status(400)
-                                .json({
-                                    message: "Error al registrar usuario (error en el query)  " + error,
-                                    error: true
-                                });
+                if(error){
+                    return res.status(400).json({
+                        message: "Hubo un error al obtener los datos en el servidor"
+                    })
                 }
 
-                return res  .header("Content-Type", "application/json")
-                            .status(200)
-                            .json(data);
+                return res.status(200).json(data)
 
             });
         } catch (error) {
@@ -59,13 +74,13 @@ export class authController{
 
         try {
 
-            connection.query(query, [username], (error, results) => {
+            db.query(query, [username], (error, results) => {
 
                 // problemas con el seridor o la escturcutra de la consulta
                 if (error) {
                     return res.status(400).json({
                         error: true,
-                        message: "Ocurrió un error al obtener los dato: " + error
+                        message: "Ocurrió un error al obtener los datos: " + error
                     })
                 }
 
@@ -76,8 +91,6 @@ export class authController{
                         message: "Correo no encontrado"
                     })
                 }
-
-              
 
                 const { password_hash } = results[0] // extraigo el password_hash del primer elemento del array
 
