@@ -5,6 +5,7 @@ import express, { json } from 'express'
 import authRouter from './api-proyecto/routes/auth.js'
 //import paymentsRouter from './api-proyecto/routes/payments.js'
 import inventoryRouter from './api-proyecto/routes/inventory.js'
+import reportRouter from './api-proyecto/routes/reports.js';
 
 
 
@@ -25,6 +26,7 @@ const PORT = process.env.PORT2 || 3000;
 app.use('/auth', authRouter);
 //app.use('/payments', paymentsRouter);
 app.use('/inventory',inventoryRouter);
+app.use('/report',reportRouter);
 
 app.use((req, res) => {
     res.status(404).json({
