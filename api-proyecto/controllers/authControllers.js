@@ -2,6 +2,7 @@ import db from '../config/db.js';
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import 'dotenv/config';
+import { ValidatePartialUserSchema, ValidateUserSchema } from '../schemas/userSchema.js';
 
 export class authController{
     
@@ -10,15 +11,20 @@ export class authController{
         const consulta = `INSERT INTO users ( username, email, password)  VALUES (?, ?, ?)`;
         const data = req.body;
         const { username, email, password} = data;
-        if(!username|| !email || !password)//verificamos que ingreso todo lo que solicitamos
+        if(!username || !email || !password)
         {
             return res.status(400).json({
-                message: "Debe de ingresar: username, email y password"
+                message: "Debe de ingresar username, email y password"
             })
         }
-
+        
+        const {success, error} = ValidateUserSchema(data)
+        if (!success) {
+            return res.status(400).json({
+                message: JSON.parse(error.message)
+            })
+        }
         const passwordhash = bcrypt.hashSync(password,10)
-
         try {
             
             db.query(consulta, [username, email, passwordhash], (error, results) => {
@@ -43,13 +49,21 @@ export class authController{
 
     static loginUser(req, res) {
 
-        const { username, password: password_user } = req.body
-    
+        const data = req.body
+        const { username, password: password_user } = data
+        
         // Validar entrada
         if (!username || !password_user) {
             return res.status(400).json({
                 error: true,
                 message: "Debe de ingresar username y password"
+            })
+        }
+
+        const {success, error} = ValidatePartialUserSchema(data)
+        if (!success) {
+            return res.status(400).json({
+                message: JSON.parse(error.message)
             })
         }
     
@@ -81,7 +95,7 @@ export class authController{
                     if (error || !isMatch) {
                         return res.status(400).json({
                             error: true,
-                            message: "La contraseña es incorrecta"
+                            message: "Contraseña o Usuario Incorrecto"
                         })
                     }
     
