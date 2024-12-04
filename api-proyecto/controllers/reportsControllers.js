@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 export class reportsController {
     static reportInventory(req,res) {
-        const consulta = "SELECT * FROM products"
+        const consulta = "SELECT id, name, description, price, stock, Stock_minimo FROM products"
 
         try{
             db.query(consulta, (error, results) => {
