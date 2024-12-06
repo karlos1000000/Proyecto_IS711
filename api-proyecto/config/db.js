@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 const connection = mysql.createConnection({
     host: process.env.HOST,
-    port: process.env.PORTDB, // reemplazar con el puerto de la base de datos
+    port: process.env.PORT, // reemplazar con el puerto de la base de datos
     user: process.env.USER, // reemplazar con el usuario de la base de datos
     password: process.env.PASSWORD, // contraseña del usuario de la base de datos
     database: process.env.DATABASE, // reemplazar con el nombre de la base de datos
