@@ -19,7 +19,7 @@ app.use(json()) //Middleware de express para capturar el body de la petición
 
 //Puerto
 //Agregar la variable PORT al .env
-const PORT = process.env.PORTDB || 3000;
+const PORT = process.env.PORT || 3000;
 
 // Rutas
 //app.use('/products', productRouter);
