@@ -6,6 +6,7 @@ import authRouter from './api-proyecto/routes/auth.js'
 //import paymentsRouter from './api-proyecto/routes/payments.js'
 import inventoryRouter from './api-proyecto/routes/inventory.js'
 import reportRouter from './api-proyecto/routes/reports.js';
+import "dotenv/config"
 
 
 
@@ -18,7 +19,7 @@ app.use(json()) //Middleware de express para capturar el body de la petición
 
 //Puerto
 //Agregar la variable PORT al .env
-const PORT = process.env.PORT2 || 3000;
+const PORT = process.env.PORTDB || 3000;
 
 // Rutas
 //app.use('/products', productRouter);
