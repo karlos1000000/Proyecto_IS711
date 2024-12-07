@@ -9,14 +9,11 @@ export class paymentController {
 
         const data_user = 
         {
-            user_id: data.user.id,
+            user_id: data.user_id,
             cart_id: data.cart_id
         };
 
-        const consultaCarrito = `SELECT CI.cart_id SUM(Cantidad) FROM cart_items as CI
-                          inner join carts AS c ON CI.cart_id = c.id 
-                          WHERE c.user_id = ?
-                          group by CI.cart_id`;
+        const consultaCarrito = `SELECT CI.cart_id, SUM(Cantidad) FROM cart_items as CI inner join carts AS c ON CI.cart_id = c.id  WHERE c.user_id = ? group by CI.cart_id`;
 
         try {
             db.query(consultaCarrito, [data_user.user_id], (err, results) => {
@@ -106,7 +103,7 @@ export class paymentController {
             });
         }
 
-
+        let id_pixel_string = id_pixel_pay.toString();
         const paymentData = {
             customer_name: data.customer_name,
             card_number: data.card_number,
@@ -119,7 +116,7 @@ export class paymentController {
             billing_country: data.billing_country,
             billing_state: data.billing_state,
             billing_phone: data.billing_phone,
-            order_id: id_pixel_pay, // Este es el id del pago
+            order_id: id_pixel_string, // Este es el id del pago
             order_currency: data.order_currency, // Moneda
             order_amount: data.order_amount, // Monto
             env: data.env,
@@ -132,35 +129,118 @@ export class paymentController {
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        "x-auth-key": process.env.X_AUTH_KEY,
+                        "x-auth-key": '1234567890',
                         "x-auth-hash": process.env.X_AUTH_HASH,
                         Accept: "application/json",
                     },
                 }
             );
 
-            //#region Guardar el pago en la base de datos
 
-            const consultaPago = `INSERT INTO Pago (User_id, total, status) VALUES ( ?, ?, ?)`;
-            const consultaPago_Detalle = `INSERT INTO Pago_Detalle (payment_id, product_id, cantidad, price) VALUES (?, ?, ?, ?)`;
+            const InsertarPago = `INSERT INTO Pago (User_id, total, status) VALUES ( ?, ?, 'Success')`;
+            const InsertarPago_Detalle = `INSERT INTO Pago_Detalle (pago_id, product_id, cantidad, price) VALUES (?, ?, ?, ?)`;
             const rebajarInventario = `UPDATE products SET stock = stock - ? WHERE id = ?`;
-    
+            const InsertarPixelPay = `INSERT INTO pixel_pays (id, status, created_date) VALUES (?, ?, ?)`;
             
+            //#region Guardar el pago en la base de datos
+            try {
+                db.query(InsertarPago, [data_user.user_id, data.order_amount], (error, results) => {
+                    if (error) {
+                        return res.status(400).json({
+                            message: "Error al insertar el pago en la base de datos",
+                            error: true,
+                        });
+                    }
+                });
+                
+            } catch (error) {
+                return res.status(400).json({
+                    message: "Error al insertar el pago en la base de datos (error en el catch)",
+                    error: true,
+                });
+            }
+            //#region Guardar el detalle del pago en la base de datos
+            try {
+                data.cart_items.forEach(product => {
+
+                    db.query(InsertarPago_Detalle, [id_pago, product.id, product.cantidad, product.price], (error, results) => {
+                        if (error) {
+                            return res.status(400).json({
+                                message: "Error al insertar el detalle del pago en la base de datos",
+                                error: true,
+                            });
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                funcionesRollBack.EliminarPago(id_pago);
+                return res.status(400).json({
+                    message: "Error al insertar el pago en la base de datos (error en el catch)",
+                    error: true,
+                });
+            }
+
+            //#region Rebajar el inventario
+
+            try {
+                data.cart_items.forEach(product => {
+                    db.query(rebajarInventario, [product.cantidad, product.id], (error, results) => {
+                        if (error) {
+                            return res.status(400).json({
+                                message: "Error al rebajar el inventario en la base de datos",
+                                error: true,
+                            });
+                        }
+                    });
+                });
+            } catch (error) {
+                funcionesRollBack.EliminarPagoDetalle(id_pago);
+                funcionesRollBack.EliminarPago(id_pago);
+                return res.status(400).json({
+                    message: "Error al rebajar el inventario en la base de datos (error en el catch)",
+                    error: true,
+                });
+            }
+
+            //#region Guardar el pixel pay en la base de datos
+            try {
+                db.query(InsertarPixelPay, [id_pixel_pay, 'Success', new Date()], (error, results) => {
+                    if (error) {
+                        return res.status(400).json({
+                            message: "Error al insertar el pixel pay en la base de datos",
+                            error: true,
+                        });
+                    }
+                });
+            } catch (error) {
+                funcionesRollBack.RestaurarInventario(id_pago);
+                funcionesRollBack.EliminarPagoDetalle(id_pago);
+                funcionesRollBack.EliminarPago(id_pago);
+                return res.status(400).json({
+                    message: "Error al insertar el pixel pay en la base de datos (error en el catch)",
+                    error: true,
+                });
+            }
+
+            funcionesRollBack.LimpiarCarrito(data_user.cart_id);
 
             return res.status(200).json({
                 message: "Pago realizado exitosamente",
                 data: response.data,
             });
+
+
         } catch (error) {
             return res.status(400).json({
-                message: "Error al realizar el pago",
+                message: "Error al realizar el pago (pixel pay)",
                 error: error.response ? error.response.data : error.message,
             });
         }
     };
 
    
-
+    //#region Obtener el historial de pagos
     static getPaymentHistory = (req, res) => {
         const { id } = req.params;
         const consulta =
@@ -196,4 +276,101 @@ export class paymentController {
             });
         }
     };
+}
+
+class funcionesRollBack {
+
+    //#region Eliminar el pago
+    static EliminarPago = (id_pago) => {
+        const EliminarPago = `DELETE FROM Pago WHERE id = ?`;
+        try {
+            db.query(EliminarPago, [id_pago], (error, results) => {
+                if (error) {
+                    return res.status(400).json({
+                        message: "Error al eliminar el pago en la base de datos",
+                        error: true,
+                    });
+                }
+            });
+        } catch (error) {
+            return res.status(400).json({
+                message: "Error al eliminar el pago en la base de datos (error en el catch)",
+                error: true,
+            });
+        }
+    };
+
+    //#region  Eliminar el detalle del pago
+    static EliminarPagoDetalle = (id_pago) => {
+        const EliminarPagoDetalle = `DELETE FROM Pago_Detalle WHERE pago_id = ?`;
+        try {
+            db.query(EliminarPagoDetalle, [id_pago], (error, results) => {
+                if (error) {
+                    return res.status(400).json({
+                        message: "Error al eliminar el detalle del pago en la base de datos",
+                        error: true,
+                    });
+                }
+            });
+        } catch (error) {
+            return res.status(400).json({
+                message: "Error al eliminar el detalle del pago en la base de datos (error en el catch)",
+                error: true,
+            });
+        }
+    }
+
+    //#region  Restaurar el inventario
+    static RestaurarInventario = (id_pago) => {
+        const ObtenerProductos = `SELECT product_id, cantidad FROM Pago_Detalle WHERE pago_id = ?`;
+        const ActualizarInventario = `UPDATE products SET stock = stock + ? WHERE id = ?`;
+
+        try {
+            db.query(ObtenerProductos, [id_pago], (error, results) => {
+                if (error) {
+                    return res.status(400).json({
+                        message: "Error al obtener los productos del pago",
+                        error: true,
+                    });
+                }
+
+                results.forEach(product => {
+                    db.query(ActualizarInventario, [product.cantidad, product.product_id], (error, results) => {
+                        if (error) {
+                            return res.status(400).json({
+                                message: "Error al restaurar el inventario",
+                                error: true,
+                            });
+                        }
+                    });
+                });
+            });
+        } catch (error) {
+            return res.status(400).json({
+                message: "Error al obtener los productos del pago (error en el catch)",
+                error: true,
+            });
+        }
+    }
+
+    //#region Limpiar el carrito
+    static LimpiarCarrito = (id_carrito) => {
+        const EliminarCarrito = `DELETE FROM cart_items WHERE cart_id = ?`;
+        try {
+            db.query(EliminarCarrito, [id_carrito], (error, results) => {
+                if (error) {
+                    return res.status(400).json({
+                        message: "Error al eliminar el carrito",
+                        error: true,
+                    });
+                }
+            });
+        } catch (error) {
+            return res.status(400).json({
+                message: "Error al eliminar el carrito (error en el catch)",
+                error: true,
+            });
+        }
+    }
+
 }
