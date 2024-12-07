@@ -2,11 +2,11 @@ import {z} from 'zod';
 
 const productSchema = z.object({
  
-    "nombre": z.string().max(50).trim(),
-    "descripcion": z.string().max(200).trim(),
-    "precio": z.number().min(0),
+    "name": z.string().max(50).trim(),
+    "description": z.string().max(200).trim(),
+    "price": z.number().min(0),
     "stock": z.number().min(0),
-    "categoria": z.string().max(50).trim(),
+    "stock_minimo": z.number().min(0),
     
 }).strict();
 

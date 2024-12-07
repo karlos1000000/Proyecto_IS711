@@ -1,10 +1,10 @@
 import db from '../config/db.js';
-import { ValidateProduct } from '../schemas/product.schema.js';
+import { ValidateProduct } from '../schemas/productSchema.js';
 
 
 export class productController {
 
-    // Obtener todos los productos
+    //#region Obtener todos los productos
     static getAllProducts = (req, res) => {
         const consulta = "SELECT id, name, description, price, stock FROM products";
 
@@ -79,8 +79,8 @@ export class productController {
 
     // Crear un nuevo producto
     static createProduct = (req, res) => {
-        const consulta = "INSERT INTO productos (nombre, descripcion, precio, stock, categoria) VALUES (?, ?, ?, ?, ?)";
-        const { nombre, descripcion, precio, stock, categoria} = req.body;
+        const consulta = "INSERT INTO products (name, description, price, stock, stock_minimo) VALUES (?, ?, ?, ?, ?)";
+        const { name, description, price, stock, stock_minimo} = req.body;
         
         const data = req.body;
 
@@ -95,7 +95,7 @@ export class productController {
         }
 
         try {
-            db.query(consulta, [nombre, descripcion, precio, stock, categoria], (err, results) => {
+            db.query(consulta, [name, description, price, stock, stock_minimo], (err, results) => {
                 
                 if (err) {
                     return res.status(400)
@@ -124,11 +124,11 @@ export class productController {
     // Actualizar un producto existente
     static updateProduct = (req, res) => {
         const { productId } = req.params;
-        const { nombre, descripcion, precio, stock, categoria, fecha_creacion } = req.body;
-        const consulta = "UPDATE productos SET nombre = ?, descripcion = ?, precio = ?, stock = ?, categoria = ?, fecha_creacion = ? WHERE id = ?";
+        const { name, description, price, stock, stock_minimo } = req.body;
+        const consulta = "UPDATE products SET name = ?, description = ?, price = ?, stock = ?, stock_minimo = ? WHERE id = ?";
 
         try {
-            db.query(consulta, [nombre, descripcion, precio, stock, categoria, fecha_creacion, productId], (err, results) => {
+            db.query(consulta, [ name, description, price, stock, stock_minimo, productId], (err, results) => {
                 
                 if (err) {
                     return res.status(400)
@@ -164,7 +164,7 @@ export class productController {
     // Eliminar un producto
     static deleteProduct = (req, res) => {
         const { productId } = req.params;
-        const consulta = "DELETE FROM productos WHERE id = ?";
+        const consulta = "DELETE FROM products WHERE id = ?";
 
         try {
             db.query(consulta, [productId], (err, results) => {

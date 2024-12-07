@@ -1,15 +1,19 @@
 import db from '../config/db.js';
-import { ValidateCart } from '../schemas/cart.schema.js';
+import { ValidateCart } from '../schemas/cartSchema.js';
 
 export class cartController{
 
     static getCartByUser = (req, res) => {
         
-        const { userId } = req.params;
-        const consulta =  "select c.producto_id, p.nombre as Nombre, p.precio as Precio, c.cantidad as Cantidad from carrito as c inner join productos as p on c.producto_id = p.id WHERE c.usuario_id =  ?";
+        const { user_id } = req.params;
+        const consulta =  `select ci.id, p.name AS Nombre, p.price AS Precio, ci.cantidad AS Cantidad 
+                                FROM cart_items AS ci 
+                                INNER JOIN products AS p ON ci.product_id = p.id 
+                                INNER JOIN carts AS c ON ci.cart_id = c.id
+                            WHERE c.user_id  =  ?`;
 
         try {
-            db.query(consulta, [userId], (err, results) => {
+            db.query(consulta, [user_id], (err, results) => {
                 
                 if(err)
                 {
