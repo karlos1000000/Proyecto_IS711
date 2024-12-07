@@ -7,6 +7,8 @@ const query = promisify(db.query).bind(db);
 
 export class paymentController {
 
+
+    //#region  Realizar un pago
     static postPayment = async (req, res) => {
         const data = req.body;
 
@@ -118,32 +120,53 @@ export class paymentController {
     //#region Obtener el historial de pagos
     static getPaymentHistory = (req, res) => {
         const { id } = req.params;
-        const consulta =
-            "SELECT id, total, userId, created_date FROM pago WHERE userId = ?";
+        const consultaGeneral =
+            `SELECT DISTINCT p.id as Pago_ID, pp.holder, pp.billing_address, SUM(pd.price*pd.cantidad) as total, pp.currency, pp.date, p.status 
+                FROM pixel_pays AS pp
+                INNER JOIN pago AS p on pp.Pago_ID = p.id
+                INNER JOIN pago_detalle AS pd ON p.id =pd.payment_id AND pp.Pago_ID = pd.payment_id
+            WHERE p.user_id = ?
+                GROUP BY p.id, pp.holder, pp.billing_address, pp.currency, pp.date, p.status `;
+
+        const consultaProductos = `
+            SELECT DISTINCT p.name, pd.price, pd.cantidad 
+                FROM products AS p
+                INNER JOIN pago_detalle AS pd ON p.id = pd.product_id
+            WHERE pd.payment_id = ?`;        
 
         try {
-            db.query(consulta, [id], (err, results) => {
+            db.query(consultaGeneral, [id], (err, results) => {
                 if (err) {
                     return res.status(400).json({
-                        message:
-                            "Error al obtener el historial de pagos (error en el query)" +
-                            err,
+                        message: "Error al obtener el historial de pagos",
                         error: true,
                     });
                 }
 
-                if (results.length === 0) {
+                if (!results.length) {
                     return res.status(400).json({
-                        message: "No se encontró el historial de pagos",
+                        message: "No hay pagos realizados",
                         error: true,
                     });
                 }
 
-                return res.header("Content-Type", "application/json").status(200).json({
-                    message: "Historial de pagos",
-                    payments: results,
+                const pagos = results.map(async (pago) => {
+                    const productos = await query(consultaProductos, [pago.Pago_ID]);
+                    return {
+                        ...pago,
+                        productos,
+                    };
+                });
+
+                Promise.all(pagos).then((pagos) => {
+                    return res.status(200).json({
+                        message: "Historial de pagos",
+                        data: pagos,
+                    });
                 });
             });
+            
+
         } catch (error) {
             return res.status(400).json({
                 message: "Error al obtener el historial de pagos (error en el catch)",
