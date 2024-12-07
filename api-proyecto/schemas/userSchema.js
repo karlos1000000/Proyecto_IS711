@@ -10,6 +10,8 @@ const UserSchema = z.object({
   password: z.string()
     .min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
     .max(30, { message: "La contraseña no puede exceder los 30 caracteres" }),
+  role: z.enum(["cliente", "administrador"], 
+    { message: "El role debe ser 'cliente' o 'administrador'" }),
 });
 
 export const ValidateUserSchema = (user) => UserSchema.safeParse(user)
