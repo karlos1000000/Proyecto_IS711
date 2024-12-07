@@ -8,13 +8,13 @@ export class authController{
     
 
     static registerUser = (req, res) => {
-        const consulta = `INSERT INTO users ( username, email, password)  VALUES (?, ?, ?)`;
+        const consulta = `INSERT INTO users ( username, email, password, role)  VALUES (?, ?, ?, ?)`;
         const data = req.body;
-        const { username, email, password} = data;
-        if(!username || !email || !password)
+        const { username, email, password, role} = data;
+        if(!username || !email || !password || !role)
         {
             return res.status(400).json({
-                message: "Debe de ingresar username, email y password"
+                message: "Debe de ingresar username, email, password y role"
             })
         }
         
@@ -27,7 +27,7 @@ export class authController{
         const passwordhash = bcrypt.hashSync(password,10)
         try {
             
-            db.query(consulta, [username, email, passwordhash], (error, results) => {
+            db.query(consulta, [username, email, passwordhash, role], (error, results) => {
                 
                 if(error){
                     return res.status(400).json({
