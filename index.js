@@ -3,7 +3,7 @@ import express, { json } from 'express'
 //import productRouter from './api-proyecto/routes/product.js'
 //import cartRouter from './api-proyecto/routes/cart.js'
 import authRouter from './api-proyecto/routes/auth.js'
-//import paymentsRouter from './api-proyecto/routes/payments.js'
+import paymentRouter from './api-proyecto/routes/payments.js'
 import inventoryRouter from './api-proyecto/routes/inventory.js'
 import reportRouter from './api-proyecto/routes/reports.js';
 import "dotenv/config"
@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 3000;
 //app.use('/products', productRouter);
 //app.use('/cart', cartRouter);
 app.use('/auth', authRouter);
-//app.use('/payments', paymentsRouter);
+app.use('/payment', paymentRouter);
 app.use('/inventory',inventoryRouter);
 app.use('/report',reportRouter);
 
