@@ -9,7 +9,12 @@ const cartRouter = Router();
 cartRouter.use([authMiddleware, isClient]);//Middleware de autenticación y autorización
 cartRouter.get('/:user_id', cartController.getCartByUser);//Obtener todos los items del carrito por usuario
 cartRouter.post('/', cartController.addToCart);//Crear un item en el carrito
-cartRouter.delete('/:id', cartController.removeFromCart);//Eliminar un item del carrito
+cartRouter.delete('/:cart_id/:product_id', cartController.removeFromCart);//Eliminar un item del carrito
+
+//Rutas extras no solicitadas
+
+//Crear nuevo carrito
+cartRouter.post('/newcart', cartController.createCart);
 
 
 export default cartRouter;
