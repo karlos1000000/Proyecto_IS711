@@ -1,15 +1,112 @@
-import db from '../config/db.js';
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import 'dotenv/config';
-import axios from 'axios';
+import db from "../config/db.js";
+import "dotenv/config";
+import axios from "axios";
 
-export class paymentController{
-
+export class paymentController {
 
     static postPayment = async (req, res) => {
         const data = req.body;
-    
+
+        const data_user = 
+        {
+            user_id: data.user.id,
+            cart_id: data.cart_id
+        };
+
+        const consultaCarrito = `SELECT CI.cart_id SUM(Cantidad) FROM cart_items as CI
+                          inner join carts AS c ON CI.cart_id = c.id 
+                          WHERE c.user_id = ?
+                          group by CI.cart_id`;
+
+        try {
+            db.query(consultaCarrito, [data_user.user_id], (err, results) => {
+                if (err) {
+                    return res.status(400).json({
+                        message:
+                            "Error al obtener los items del carrito (error en el query)" + err,
+                        error: true,
+                    });
+                }
+
+                if (results == 0 || results == null || results == undefined || results == "" || results <= 0) {
+                    return res.status(400).json({
+                        message: "El carrito está vacío",
+                        error: true,
+                    });
+                }
+
+            });
+        } catch (error) {
+            return res.status(400).json({
+                message: "Error al obtener el total del carrito (error en el catch)",
+                error: true,
+            });
+
+        }
+
+        const ObtenerIdPago = `SELECT MAX(id) as id FROM pago `;
+        const ObtenerIDPixelPay = `SELECT MAX(id) as id FROM pixel_pays`;
+        let id_pago = 0;
+        let id_pixel_pay = 0;
+        //#region Obtener el id del pago
+        try {
+            db.query(ObtenerIdPago, (err, results) => {
+                if (err) {
+                    return res.status(400).json({
+                        message:
+                            "Error al obtener el id del pago (error en el query)" + err,
+                        error: true,
+                    });
+                }
+
+                if (results == 0 || results == null || results == undefined || results == "" || results <= 0) {
+                    return res.status(400).json({
+                        message: "No se encontró el id del pago",
+                        error: true,
+                    });
+                }
+                id_pago = results[0].id;
+                id_pago = id_pago + 1;
+
+            });
+        }
+        catch (error) {
+            return res.status(400).json({
+                message: "Error al obtener el id del pago (error en el catch)",
+                error: true,
+            });
+        }
+
+        //#region Obtener el id de pixel pay
+        try {
+            db.query(ObtenerIDPixelPay, (err, results) => {
+                if (err) {
+                    return res.status(400).json({
+                        message:
+                            "Error al obtener el id del pago (error en el query)" + err,
+                        error: true,
+                    });
+                }
+
+                if (results == 0 || results == null || results == undefined || results == "" || results <= 0) {
+                    return res.status(400).json({
+                        message: "No se encontró el id del pago",
+                        error: true,
+                    });
+                }
+                id_pixel_pay = results[0].id;
+                id_pixel_pay = id_pixel_pay + 1;
+
+            });
+        }
+        catch (error) {
+            return res.status(400).json({
+                message: "Error al obtener el id del pago (error en el catch)",
+                error: true,
+            });
+        }
+
+
         const paymentData = {
             customer_name: data.customer_name,
             card_number: data.card_number,
@@ -22,162 +119,81 @@ export class paymentController{
             billing_country: data.billing_country,
             billing_state: data.billing_state,
             billing_phone: data.billing_phone,
-            order_id: data.order_id,
-            order_currency: data.order_currency,
-            order_amount: data.order_amount,
-            env: data.env
+            order_id: id_pixel_pay, // Este es el id del pago
+            order_currency: data.order_currency, // Moneda
+            order_amount: data.order_amount, // Monto
+            env: data.env,
         };
-    
+
         try {
-            const response = await axios.post('https://pixel-pay.com/api/v2/transaction/sale', paymentData, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-key': process.env.X_AUTH_KEY,
-                    'x-auth-hash': process.env.X_AUTH_HASH,
-                    'Accept': 'application/json' 
+            const response = await axios.post(
+                "https://pixel-pay.com/api/v2/transaction/sale",
+                paymentData,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-auth-key": process.env.X_AUTH_KEY,
+                        "x-auth-hash": process.env.X_AUTH_HASH,
+                        Accept: "application/json",
+                    },
                 }
-            });
+            );
+
+            //#region Guardar el pago en la base de datos
+
+            const consultaPago = `INSERT INTO Pago (User_id, total, status) VALUES ( ?, ?, ?)`;
+            const consultaPago_Detalle = `INSERT INTO Pago_Detalle (payment_id, product_id, cantidad, price) VALUES (?, ?, ?, ?)`;
+            const rebajarInventario = `UPDATE products SET stock = stock - ? WHERE id = ?`;
     
+            
+
             return res.status(200).json({
                 message: "Pago realizado exitosamente",
-                data: response.data
+                data: response.data,
             });
-    
         } catch (error) {
             return res.status(400).json({
                 message: "Error al realizar el pago",
-                error: error.response ? error.response.data : error.message
+                error: error.response ? error.response.data : error.message,
             });
         }
-    }
-    
+    };
 
-    static checkOut = (req, res) => {
-        const consultaPago = `INSERT INTO Pago (User_id, total, status) VALUES ( ?, ?, ?)`;
-        const ObtenerIdPago = `SELECT id FROM Pago WHERE User_id = ? AND total = ? AND status = ?`;
-        const consultaPago_Detalle = `INSERT INTO Pago_Detalle (payment_id, product_id, cantidad, price) VALUES (?, ?, ?, ?)`; 
-                        
-        const data = req.body;
-
-        try {
-            db.query(consultaPago, [data.User_id, data.total, data.status], (err, results) => {
-                
-                if (err) {
-                    return res.status(400)
-                            .json({
-                                message: "Error al realizar el pago (error en el query)" + err,
-                                error: true
-                    });
-                } 
-
-                if (results.affectedRows === 0) {
-                    return res.status(400)
-                            .json({
-                                message: "No se realizó el pago",
-                                error: true
-                            });
-                }
-
-                db.query(ObtenerIdPago, [data.User_id, data.total, data.status], (err, results) => {
-                    if (err) {
-                        return res.status(400)
-                                .json({
-                                    message: "Error al obtener el id del pago (error en el query)" + err,
-                                    error: true
-                        });
-                    } 
-
-                    if (results.length === 0) {
-                        return res.status(400)
-                                .json({
-                                    message: "No se encontró el id del pago",
-                                    error: true
-                                });
-                    }
-
-                    const payment_id = results[0].id;
-
-                    data.products.forEach(product => {
-                        db.query(consultaPago_Detalle, [payment_id, product.id, product.cantidad, product.price], (err, results) => {
-                            if (err) {
-                                return res.status(400)
-                                        .json({
-                                            message: "Error al realizar el pago (error en el query)" + err,
-                                            error: true
-                                });
-                            } 
-
-                            if (results.affectedRows === 0) {
-                                return res.status(400)
-                                        .json({
-                                            message: "No se realizó el pago",
-                                            error: true
-                                        });
-                            }
-                        });
-                    });
-
-                    return res.header("Content-Type", "application/json")
-                            .status(200)
-                            .json({
-                                message: "Pago realizado exitosamente",
-                                paymentId: payment_id
-                            });
-                });
-            });
-
-        } catch (error) {
-            
-            return res.status(400)
-                    .json({
-                        message: "Error al realizar el pago (error en el catch)",
-                        error: true
-            });
-        }
-    }
+   
 
     static getPaymentHistory = (req, res) => {
         const { id } = req.params;
-        const consulta = "SELECT id, total, userId, created_date FROM Pago WHERE userId = ?";
+        const consulta =
+            "SELECT id, total, userId, created_date FROM Pago WHERE userId = ?";
 
         try {
-           
             db.query(consulta, [id], (err, results) => {
-                
                 if (err) {
-                    return res.status(400)
-                            .json({
-                                message: "Error al obtener el historial de pagos (error en el query)" + err,
-                                error: true
+                    return res.status(400).json({
+                        message:
+                            "Error al obtener el historial de pagos (error en el query)" +
+                            err,
+                        error: true,
                     });
                 }
 
                 if (results.length === 0) {
-                    return res.status(400)
-                            .json({
-                                message: "No se encontró el historial de pagos",
-                                error: true
-                            });
+                    return res.status(400).json({
+                        message: "No se encontró el historial de pagos",
+                        error: true,
+                    });
                 }
 
-                return res.header("Content-Type", "application/json")
-                        .status(200)
-                        .json({
-                            message: "Historial de pagos",
-                            payments: results
-                        });
+                return res.header("Content-Type", "application/json").status(200).json({
+                    message: "Historial de pagos",
+                    payments: results,
+                });
             });
         } catch (error) {
-            
-            return res.status(400)
-                    .json({
-                        message: "Error al obtener el historial de pagos (error en el catch)",
-                        error: true
+            return res.status(400).json({
+                message: "Error al obtener el historial de pagos (error en el catch)",
+                error: true,
             });
-    
         }
-    }
+    };
 }
-
-
-

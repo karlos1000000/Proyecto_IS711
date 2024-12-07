@@ -26,7 +26,7 @@ export class reportsController {
     }
 
     static reportSales(req,res) {
-        const consulta = "SELECT id, user_id, total, status, created_date FROM pago WHERE created_date BETWEEN ? AND ? "
+        const consulta = "SELECT id, user_id, total, status, created_date FROM pago WHERE created_date BETWEEN ? AND ADDDATE(?,1)  "
 
         const {start_date, end_date} = req.params
 

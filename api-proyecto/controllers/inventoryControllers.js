@@ -7,7 +7,7 @@ export class inventoryController{
 
 
     static restockInventory = (req, res) => {
-        const consulta = `UPDATE Products SET Stock = Stock + ? WHERE id = ?`; 
+        const consulta = `UPDATE products SET Stock = Stock + ? WHERE id = ?`; 
                         
         const data = req.body;
 
@@ -52,7 +52,7 @@ export class inventoryController{
 
     static getInventoryById = (req, res) => {
         const { id } = req.params;
-        const consulta = "SELECT id , name, description, stock, price FROM Products WHERE id = ?";
+        const consulta = "SELECT id , name, description, stock, price FROM products WHERE id = ?";
 
         try {
             db.query(consulta, [id], (err, results) => {
