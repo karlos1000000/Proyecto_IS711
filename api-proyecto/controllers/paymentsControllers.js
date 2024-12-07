@@ -9,7 +9,7 @@ export class paymentController{
 
     static postPayment = async (req, res) => {
         const data = req.body;
-
+    
         const paymentData = {
             customer_name: data.customer_name,
             card_number: data.card_number,
@@ -25,22 +25,24 @@ export class paymentController{
             order_id: data.order_id,
             order_currency: data.order_currency,
             order_amount: data.order_amount,
-            env: data.env,
-            lang: data.lang
+            env: data.env
         };
-
+    
         try {
             const response = await axios.post('https://pixel-pay.com/api/v2/transaction/sale', paymentData, {
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-auth-key': process.env.X_AUTH_KEY,
+                    'x-auth-hash': process.env.X_AUTH_HASH,
+                    'Accept': 'application/json' 
                 }
             });
-
+    
             return res.status(200).json({
                 message: "Pago realizado exitosamente",
                 data: response.data
             });
-
+    
         } catch (error) {
             return res.status(400).json({
                 message: "Error al realizar el pago",
@@ -48,6 +50,7 @@ export class paymentController{
             });
         }
     }
+    
 
     static checkOut = (req, res) => {
         const consultaPago = `INSERT INTO Pago (User_id, total, status) VALUES ( ?, ?, ?)`;
