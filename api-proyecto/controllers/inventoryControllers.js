@@ -2,6 +2,8 @@ import db from '../config/db.js';
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import 'dotenv/config';
+import { ValidatePartialInventorySchema} from '../schemas/inventorySchema.js';
+
 
 export class inventoryController{
 
@@ -10,6 +12,21 @@ export class inventoryController{
         const consulta = `UPDATE products SET Stock = Stock + ? WHERE id = ?`; 
                         
         const data = req.body;
+
+        /* Comenté esto porque no estoy seguro si las variables q estan en el schema son las que
+        tengo q validar.
+        
+        //USO DEL SCHEMA
+        const {success, error} = ValidatePartialInventorySchema(data)
+        if(!success){
+            return res.status(400)
+                        .json({
+                            message: "Error al agregar stock (error en el schema)" + error,
+                            error: true
+                        });
+        }
+        //USO DEL SCHEMA
+        */
 
         try {
             

@@ -2,7 +2,7 @@ import db from "../config/db.js";
 import "dotenv/config";
 import axios from "axios";
 import { promisify } from "util";
-import { ValidatePartialPaymentSchema, ValidatePaymentSchema } from '../schemas/paymentSchema.js';
+import { ValidatePartialPaymentSchema} from '../schemas/paymentSchema.js';
 
 const query = promisify(db.query).bind(db);
 
