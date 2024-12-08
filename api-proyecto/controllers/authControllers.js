@@ -17,6 +17,8 @@ export class authController{
                 message: "Debe de ingresar username, email, password y role"
             })
         }
+
+
         
         const {success, error} = ValidateUserSchema(data)
         if (!success) {

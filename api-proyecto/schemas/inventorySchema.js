@@ -11,6 +11,6 @@ const inventorySchema = z.object({
 }).strict();
 
 
-export const ValidateCart = (cart) => cartSchema.safeParse(cart);
+export const ValidateCart = (cart) => inventorySchema.safeParse(cart);
 
-export const ValidatePartialCart = (cart) => cartSchema.partial().safeParse(cart);
+export const ValidatePartialCart = (cart) => inventorySchema.partial().safeParse(cart);

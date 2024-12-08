@@ -2,6 +2,7 @@ import db from "../config/db.js";
 import "dotenv/config";
 import axios from "axios";
 import { promisify } from "util";
+import { ValidatePartialPaymentSchema, ValidatePaymentSchema } from '../schemas/paymentSchema.js';
 
 const query = promisify(db.query).bind(db);
 
@@ -16,6 +17,17 @@ export class paymentController {
             user_id: data.user_id,
             cart_id: data.cart_id,
         };
+
+//USO DEL SCHEMA
+        const {success, error} = ValidatePartialPaymentSchema(data_user)
+        if(!success){
+            return res.status(400)
+                        .json({
+                            message: "Error al realizar el pago (error en el schema)" + error,
+                            error: true
+                        });
+        }
+//USO DEL SCHEMA
 
         try {
             // Verificar si el carrito está vacío
