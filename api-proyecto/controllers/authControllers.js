@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import 'dotenv/config';
 import { ValidatePartialUserSchema, ValidateUserSchema } from '../schemas/userSchema.js';
+import { cartController } from './cartControllers.js';
 
 export class authController{
     
@@ -29,7 +30,7 @@ export class authController{
         const passwordhash = bcrypt.hashSync(password,10)
         try {
             
-            db.query(consulta, [username, email, passwordhash, role], (error, results) => {
+            db.query(consulta, [username, email, passwordhash, role], async (error, results) => {
                 
                 if(error){
                     return res.status(400).json({
@@ -37,8 +38,24 @@ export class authController{
                     })
                 }
 
-                return res.status(200).json(data)
+                const user_id = results.insertId;
+                
+                try {
+                    const cart_id = await cartController.createCart(user_id);
 
+                    return res.status(200).json({
+                        message: data,
+                        user_id: user_id,
+                        cart_id: cart_id,
+                    });
+                } catch (cartError) {
+                    console.error("Error al crear el carrito:", cartError);
+                    return res.status(500).json({
+                        message: "Usuario creado, pero ocurrió un error al crear el carrito",
+                        user_id: user_id,
+                    });
+                }
+                
             });
         } catch (error) {
             return res.status(400)

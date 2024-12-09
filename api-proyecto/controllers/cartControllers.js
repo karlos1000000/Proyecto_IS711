@@ -7,7 +7,7 @@ export class cartController{
     static getCartByUser = (req, res) => {
         
         const { user_id } = req.params;
-        const consulta =  `select ci.id, p.name AS Nombre, p.price AS Precio, ci.cantidad AS Cantidad 
+        const consulta =  `select ci.id, p.id AS ProductID, p.name AS Nombre, p.price AS Precio, ci.cantidad AS Cantidad
                                 FROM cart_items AS ci 
                                 INNER JOIN products AS p ON ci.product_id = p.id 
                                 INNER JOIN carts AS c ON ci.cart_id = c.id
@@ -146,57 +146,26 @@ export class cartController{
 
     //Metodos para rutas adicionales no solicitadas
 
-    static createCart = (req, res) => {
-        const { user_id } = req.body;
-
-        const data = req.body;
-    
-        const { success, error } = ValidateCart(data);
-
-        if(!success){
-            return res.status(400)
-                        .json({
-                            message: "Error al crear el carrito (error en el schema)" + error,
-                            error: true
-                        });
-        }
-
-
-        if (!user_id) {
-            return res.status(400).json({
-                message: "El campo user_id es obligatorio",
-                error: true,
-            });
-        }
-    
+    static async createCart (user_id) {
+        
         const crearCarrito = `
             INSERT INTO carts (user_id)
             VALUES (?);
         `;
     
-        try {
+        return new Promise((resolve, reject) => {
             db.query(crearCarrito, [user_id], (err, results) => {
                 if (err) {
-                    return res.status(500).json({
-                        message: "Error al crear el carrito",
-                        error: true,
-                    });
+                    console.error("Error al crear el carrito: ", err);
+                    return reject(err);
                 }
     
                 const newCartId = results.insertId;
-    
-                return res.status(201).json({
-                    message: "Carrito creado exitosamente",
-                    cart_id: newCartId,
-                });
+                console.log("Carrito creado exitosamente con cart_id: ", newCartId);
+                resolve(newCartId);
             });
-        } catch (error) {
-            return res.status(500).json({
-                message: "Error al procesar la solicitud",
-                error: true,
-            });
-        }
-    };
+        });
+    }
     
     
 }
