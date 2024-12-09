@@ -11,10 +11,6 @@ cartRouter.get('/:user_id', cartController.getCartByUser);//Obtener todos los it
 cartRouter.post('/', cartController.addToCart);//Crear un item en el carrito
 cartRouter.delete('/:cart_id/:product_id', cartController.removeFromCart);//Eliminar un item del carrito
 
-//Rutas extras no solicitadas
-
-//Crear nuevo carrito
-cartRouter.post('/newcart', cartController.createCart);
 
 
 export default cartRouter;
